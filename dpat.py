@@ -241,6 +241,15 @@ c.execute('SELECT count(DISTINCT nt_hash) FROM hash_infos')
 num_unique_nt_hashes = c.fetchone()[0]
 summary_table.append((num_unique_nt_hashes,"Unique Password Hashes",None))
 
+# Number of NON-UNIQUE hashes in the NTDS file
+c.execute('SELECT username_full,A.nt_hash,hash_count,password,LENGTH(password) as plen,only_lm_cracked FROM hash_infos A INNER JOIN (SELECT nt_hash, COUNT(*) AS hash_count FROM hash_infos GROUP BY nt_hash HAVING COUNT(*) > 1) B ON A.nt_hash = B.nt_hash ORDER BY hash_count DESC, password')
+list = c.fetchall()
+num_nonunique_hashes = len(list)
+hbt = HtmlBuilder()
+hbt.add_table_to_html(list,["Username","NT Hash","Count","Password","Password Length","Only LM Cracked"])
+filename = hbt.write_html_report("nonunique hashes.html")
+summary_table.append((num_nonunique_hashes,"Non-Unique Password Hashes","<a href=\"" + filename + "\">Details</a>"))
+
 # Number of users whose passwords were cracked
 c.execute('SELECT count(*) FROM hash_infos where password is not NULL')
 num_passwords_cracked = c.fetchone()[0]
